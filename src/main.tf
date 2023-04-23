@@ -76,7 +76,7 @@ locals {
 ## Virtual Machine
 ##################################################################################
 
-resource "opentelekomcloud_compute_instance_v2" "this" {
+resource "opentelekomcloud_compute_instance_v2" "otc_af_base_compute" {
   # Determines whether the resource should be created or not.
   count               = local.create ? 1 : 0
 
