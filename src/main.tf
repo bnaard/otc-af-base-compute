@@ -78,25 +78,38 @@ locals {
 
 resource "opentelekomcloud_compute_instance_v2" "this" {
   # Determines whether the resource should be created or not.
-  count = local.create ? 1 : 0
+  count               = local.create ? 1 : 0
 
   # Name of the node to be created.
-  name = var.name
+  name                = var.name
 
   # Tags for the virtual machine
-  tags = var.tags
+  tags                = var.tags
 
-  # ID of the image to use.
-  image_name = data.opentelekomcloud_images_image_v2.image.id
+  # ID of the image to use, either retrieved by name via data-ressource or 
+  # directly provided id by module user
+  image_id            = var.image_id == "" ? data.opentelekomcloud_images_image_v2.image.id : var.image_id
 
-  # ID of the flavor to use.
-  flavor_id = data.opentelekomcloud_compute_flavor_v2.flavor.id
+  # ID of the flavor to use, either retrieved by name via data-ressource or 
+  # directly provided id by module user 
+  flavor_id           = var.flavor_id == "" ? data.opentelekomcloud_compute_flavor_v2.flavor.id : var.flavor_id
 
   # Availability zone where the node will be launched.
-  availability_zone = local.availability_zone
+  availability_zone   = local.availability_zone
+
+  # The following precondition checks if the availability zone
+  # specified in the 'local.availability_zone' variable is included in the list of available availability zones in
+  # the current region, using the 'data.opentelekomcloud_compute_availability_zones_v2' data source. If the condition is
+  # not met, it will raise an error message containing details about the invalid setting. 
+  lifecycle {
+    precondition {
+      condition     = contains(data.opentelekomcloud_compute_availability_zones_v2.available_availability_zones.names, local.availability_zone)
+      error_message = "For node ${var.name}, availability zone setting is invalid. For the region ${local.region} the valid AZ's are ${jsonencode(data.opentelekomcloud_compute_availability_zones_v2.available_availability_zones.names)}"
+    }
+  }
 
   # The security group to associate with the node.
-  security_groups = [opentelekomcloud_networking_secgroup_v2.node_securitygroup.name]
+  security_groups     = [opentelekomcloud_networking_secgroup_v2.node_securitygroup.name]
 
   # This code creates a user_data string to be passed to an OpenTelekomCloud instance. The
   # user_data is created by encoding and joining several cloud-init files, including
@@ -114,17 +127,36 @@ resource "opentelekomcloud_compute_instance_v2" "this" {
     )
   )
 
-
-
-
+  # primary subnet the virtual machine belongs to
   network {
-    uuid        = var.subnet_id
-    fixed_ip_v4 = var.fixed_ip_v4
+    uuid           = var.network_subnet_id
+    name           = var.network_subnet_id == null && var.network_port_id == null ? var.network_name : null
+    port_id        = var.network_subnet_id == null && var.network_name == null ? var.network_port_id : null
+    fixed_ip_v4    = var.network_fixed_ip_v4
+    fixed_ip_v6    = var.network_fixed_ip_v6
+    access_network = var.network_access_network
   }
 
+  # Dynamic block for creating additional network interfaces for the instance
+  # using the for_each meta-argument to create multiple instances of the block.
+  # The block iterates over the map of additional network interfaces provided in
+  # the variable var.network_additional_interfaces, and creates a content block
+  # for each interface with attributes corresponding to the keys of each map item.
+  dynamic "network_additional_interfaces" {
+    for_each = var.network_additional_interfaces
+    content {
+      uuid           = lookup(each.value, "network_subnet_id", null)
+      name           = lookup(each.value, "network_subnet_id", null) == null && lookup(each.value, "network_port_id", null) == null ? lookup(each.value, "network_name", null) : null
+      port_id        = lookup(each.value, "network_subnet_id", null) == null && lookup(each.value, "network_name", null) == null ? lookup(each.value, "network_port_id", null) : null
+      fixed_ip_v4    = lookup(each.value, "network_fixed_ip_v4", null)
+      fixed_ip_v6    = lookup(each.value, "network_fixed_ip_v6", null)
+      access_network = lookup(each.value, "network_access_network", null)
+    }
+  }
 
+  # System disk definition
   block_device {
-    uuid                  = data.opentelekomcloud_images_image_v2.image.id
+    uuid                  = var.image_id == "" ? data.opentelekomcloud_images_image_v2.image.id : var.image_id
     source_type           = "image"
     volume_size           = var.system_disk_size
     boot_index            = 0
@@ -133,12 +165,6 @@ resource "opentelekomcloud_compute_instance_v2" "this" {
     volume_type           = var.system_disk_type
   }
 
-  lifecycle {
-    precondition {
-      condition     = contains(data.opentelekomcloud_compute_availability_zones_v2.available_availability_zones.names, local.availability_zone)
-      error_message = "For node ${var.name}, availability zone setting is invalid. For the region ${local.region} the valid AZ's are ${jsonencode(data.opentelekomcloud_compute_availability_zones_v2.available_availability_zones.names)}"
-    }
-  }
 
 }
 
