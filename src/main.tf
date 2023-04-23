@@ -155,7 +155,18 @@ resource "opentelekomcloud_compute_instance_v2" "this" {
   }
 
   # Define a block device as system disk  that will be attached to the server instance being created
+
+  # Case 1: system disk defined by module user and reference id to existing disk given as argument
   block_device {
+    count                 = var.system_disk_id ? 1 : 0
+    uuid                  = var.system_disk_id
+    boot_index            = 0
+  }
+
+  # Case 2: No system disk created outside the module, hence system disk details defined 
+  # created based on the given disk image id
+  block_device {
+    count                 = var.system_disk_id ? 0 : 1
     # Determine the image id based on the input value of "var.image_id" or by using the image id from the data source 
     # "data.opentelekomcloud_images_image_v2" if "var.image_id" is not specified
     uuid                  = var.image_id == "" ? data.opentelekomcloud_images_image_v2.image.id : var.image_id
@@ -168,5 +179,42 @@ resource "opentelekomcloud_compute_instance_v2" "this" {
     delete_on_termination = true
     volume_type           = var.system_disk_type
   }
+
+
+  # Create a dynamic block for defining additional disk devices, with the properties specified by 
+  # the variables in var.disk_additional_devices. The for_each loop iterates over each value in the 
+  # variable and creates a block with the specified properties for each value. The lookup function 
+  # is used to retrieve the values of each property from the variable. If the property does not exist,
+  # the respective variable will not be set
+  dynamic "disk_additional_devices" {
+    for_each = var.disk_additional_devices
+    content {
+      uuid                  = lookup(each.value, "disk_id", null)
+      source_type           = lookup(each.value, "disk_source_type", null) 
+      volume_size           = lookup(each.value, "disk_volume_size", null) 
+      boot_index            = lookup(each.value, "disk_bootable", null) == null || lookup(each.value, "disk_bootable", null) == false ? -1 : each.index + 1
+      destination_type      = "volume"
+      delete_on_termination = lookup(each.value, "disk_delete_on_termination", null)
+      volume_type           = lookup(each.value, "disk_type", null)
+    }
+  }
+
+  # Create additional ephemeral disk devices, with each block having specific properties based 
+  # on values in the `var.disk_additional_ephemeral_devices` variable. The `volume_size` and 
+  # `volume_type` properties are retrieved from the variable using the `lookup` function, 
+  # with default values assigned if the property is not present. 
+  dynamic "disk_additional_ephemeral_devices" {
+    for_each = var.disk_additional_ephemeral_devices
+    content {
+      source_type           = "blank" 
+      volume_size           = lookup(each.value, "disk_volume_size", null) == null || lookup(each.value, "disk_volume_size", null) <= 0 ? 1 : lookup(each.value, "disk_volume_size", null) 
+      boot_index            = -1
+      destination_type      = "volume"
+      delete_on_termination = true
+      volume_type           = lookup(each.value, "disk_type", null) == null ? "SATA" : lookup(each.value, "disk_type", null)
+    }
+  }
+
+
 
 }

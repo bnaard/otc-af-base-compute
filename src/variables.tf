@@ -147,19 +147,64 @@ variable "public_ip_bandwidth_share_type" {
 ##################################################################################
 
 variable "system_disk_size" {
-  type        = number
-  default     = 10
-  description = "Size of the system disk for the virtual machine in GByte.\ndefault: 10"
+  type            = number
+  default         = 10
+  description     = "Size of the system disk for the virtual machine in GByte.If system_disk_id is set, system_disk_size and system_disk_type are ignored.\ndefault: 10"
+  validation {
+    condition     = var.system_disk_size > 0
+    error_message = "Only values > 0 are allowed."
+  }
 }
 
 variable "system_disk_type" {
-  description     = "Virtual machine system disk storage type. Must be one of \"SATA\", \"SAS\", or \"SSD\".\nDefault: \"SATA\""
-  default         = "SATA"
+  description     = "Virtual machine system disk storage type. The value can be \"SSD\" (ultra-I/O disk type), \"SAS\" (high I/O disk type), or \"SATA\" (common I/O disk type). If system_disk_id is set, system_disk_size and system_disk_type are ignored.\nDefault: \"SATA\""
+  default         = "SSD"
   validation {
     condition     = contains(["SATA", "SAS", "SSD"], var.system_disk_type)
     error_message = "Allowed values for system_disk_type are \"SATA\", \"SAS\", or \"SSD\"."
   }
 }
+
+variable "system_disk_id" {
+  type        = string
+  default     = null
+  description = "Optional reference to an existing block storage device, if system disk is created by module user. If system_disk_id is set, system_disk_size and system_disk_type are ignored.\nDefault: null"
+}
+
+variable "disk_additional_devices" {
+  description = <<EOT
+Additional custom block storage disks to be attached to the virtual machine at boot time.
+Format:
+  [
+    {
+      disk_source_type : string = (mandatory) One of "image", "volume", "snapshot" or "blank"
+      disk_id : string = (mandatory) Dependent on disk_source_type, refers to an image-ID, a volume-ID or a snapshot-ID 
+      disk_volume_size : number = (mandatory for disk_source_type = "image" or "blank") Non-zero, positive value defining the disk size in GByte.
+      disk_delete_on_termination : bool (optional) Delete the volume / block device upon termination of the instance. Defaults to false. 
+      disk_type : string (optional) The value can be "SSD" (ultra-I/O disk type), "SAS" (high I/O disk type), or "SATA" (common I/O disk type). Defaults to "SATA".
+      disk_bootable : bool (optional) If true, the disk will get a boot index, otherwise not attempt to boot from. Defaults to false.
+    }
+  ]
+  EOT
+  type        = list(map(string))
+  default     = []
+}
+
+variable "disk_additional_ephemeral_devices" {
+  description = <<EOT
+Additional ephemeral block storage devices added to the machine at boot-time. Disk cannot be booted from and will be deleted at termination.
+Format:
+  [
+    {
+      disk_volume_size : number = (optional) Non-zero, positive value defining the disk size in GByte. Defaults to 1 GByte.
+      disk_type : string (optional) The value can be "SSD" (ultra-I/O disk type), "SAS" (high I/O disk type), or "SATA" (common I/O disk type). Defaults to "SATA".
+    }
+  ]
+  EOT
+  type        = list(map(string))
+  default     = []
+}
+
 
 
 ##################################################################################
