@@ -3,7 +3,7 @@
 ## Network
 ##################################################################################
 
-resource "opentelekomcloud_vpc_eip_v1" "otc-af-base-compute-public_ip" {
+resource "opentelekomcloud_vpc_eip_v1" "otc_af_base_compute_public_ip" {
   count           = local.create && var.create_public_ip ? 1 : 0
   tags            = var.tags
 

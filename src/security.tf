@@ -1,6 +1,6 @@
 
 # Define a new OpenTelekomCloud security group resource with name and description
-resource "opentelekomcloud_networking_secgroup_v2" "node_securitygroup" {
+resource "opentelekomcloud_networking_secgroup_v2" "otc_af_base_compute_securitygroup" {
   name                 = "${var.name}_security_group"
   description          = "Security group for the node ${var.name}"
   

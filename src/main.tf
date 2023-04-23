@@ -3,17 +3,17 @@
 ##################################################################################
 
 # Retrieve OpenTelekomCloud image matching image_name variable
-data "opentelekomcloud_images_image_v2" "image" {
+data "opentelekomcloud_images_image_v2" "otc_af_base_compute_image" {
   name = var.image_name
 }
 
 # Retrieve OpenTelekomCloud flavor matching flavor_name variable
-data "opentelekomcloud_compute_flavor_v2" "flavor" {
+data "opentelekomcloud_compute_flavor_v2" "otc_af_base_compute_flavor" {
   name = var.flavor_name
 }
 
 # Load security-related cloud-init configuration file as a template
-data "template_file" "security_cloud_config" {
+data "template_file" "otc_af_base_compute_security_cloud_config" {
   template = file("${path.module}/cloud-init/security.yaml")
   vars = {
     ssh_pwauth = "false"
@@ -21,7 +21,7 @@ data "template_file" "security_cloud_config" {
 }
 
 # Load emergency user-related cloud-init configuration file as a template
-data "template_file" "users_cloud_config" {
+data "template_file" "otc_af_base_compute_users_cloud_config" {
   template = !var.emergency_user ? "" : "${file("${path.module}/cloud-init/emergency_user.yaml")}"
   vars = {
     username        = var.emergency_user_spec_username
@@ -35,7 +35,7 @@ data "template_file" "users_cloud_config" {
 }
 
 # Load sshd configuration file as a template
-data "template_file" "sshd_config" {
+data "template_file" "otc_af_base_compute_sshd_config" {
   template = file("${path.module}/cloud-init/sshd_config.yaml")
   vars = {
     allow_tcp_forwarding    = var.allow_tcp_forwarding ? "yes" : "no"
@@ -49,10 +49,10 @@ data "template_file" "sshd_config" {
 }
 
 # Retrieve available availability zones
-data "opentelekomcloud_compute_availability_zones_v2" "available_availability_zones" {}
+data "opentelekomcloud_compute_availability_zones_v2" "otc_af_base_compute_available_availability_zones" {}
 
 # Retrieve current OpenTelekomCloud project
-data "opentelekomcloud_identity_project_v3" "current" {}
+data "opentelekomcloud_identity_project_v3" "otc_af_base_compute_current_project" {}
 
 
 ##################################################################################
@@ -67,7 +67,7 @@ data "opentelekomcloud_identity_project_v3" "current" {}
 
 locals {
   create            = var.create
-  region            = data.opentelekomcloud_identity_project_v3.current.region
+  region            = data.opentelekomcloud_identity_project_v3.otc_af_base_compute_current_project.region
   availability_zone = var.availability_zone == "" ? "${local.region}-01" : var.availability_zone
 }
 
@@ -88,11 +88,11 @@ resource "opentelekomcloud_compute_instance_v2" "this" {
 
   # ID of the image to use, either retrieved by name via data-ressource or 
   # directly provided id by module user
-  image_id            = var.image_id == "" ? data.opentelekomcloud_images_image_v2.image.id : var.image_id
+  image_id            = var.image_id == "" ? data.opentelekomcloud_images_image_v2.otc_af_base_compute_image.id : var.image_id
 
   # ID of the flavor to use, either retrieved by name via data-ressource or 
   # directly provided id by module user 
-  flavor_id           = var.flavor_id == "" ? data.opentelekomcloud_compute_flavor_v2.flavor.id : var.flavor_id
+  flavor_id           = var.flavor_id == "" ? data.opentelekomcloud_compute_flavor_v2.otc_af_base_compute_flavor.id : var.flavor_id
 
   # Availability zone where the node will be launched.
   availability_zone   = local.availability_zone
@@ -103,13 +103,13 @@ resource "opentelekomcloud_compute_instance_v2" "this" {
   # not met, it will raise an error message containing details about the invalid setting. 
   lifecycle {
     precondition {
-      condition     = contains(data.opentelekomcloud_compute_availability_zones_v2.available_availability_zones.names, local.availability_zone)
-      error_message = "For node ${var.name}, availability zone setting is invalid. For the region ${local.region} the valid AZ's are ${jsonencode(data.opentelekomcloud_compute_availability_zones_v2.available_availability_zones.names)}"
+      condition     = contains(data.opentelekomcloud_compute_availability_zones_v2.otc_af_base_compute_available_availability_zones.names, local.availability_zone)
+      error_message = "For node ${var.name}, availability zone setting is invalid. For the region ${local.region} the valid AZ's are ${jsonencode(data.opentelekomcloud_compute_availability_zones_v2.otc_af_base_compute_available_availability_zones.names)}"
     }
   }
 
   # The security group to associate with the node.
-  security_groups     = [opentelekomcloud_networking_secgroup_v2.node_securitygroup.name]
+  security_groups     = [opentelekomcloud_networking_secgroup_v2.otc_af_base_compute_securitygroup.name]
 
   # This code creates a user_data string to be passed to an OpenTelekomCloud instance. The
   # user_data is created by encoding and joining several cloud-init files, including
@@ -120,9 +120,9 @@ resource "opentelekomcloud_compute_instance_v2" "this" {
       join(
         "\n",
         [var.cloud_init_config],
-        [data.template_file.security_cloud_config.rendered],
-        [data.template_file.sshd_config.rendered],
-        [data.template_file.users_cloud_config.rendered]
+        [data.template_file.otc_af_base_compute_security_cloud_config.rendered],
+        [data.template_file.otc_af_base_compute_users_cloud_config.rendered],
+        [data.template_file.otc_af_base_compute_sshd_config.rendered]
       )
     )
   )
@@ -132,7 +132,7 @@ resource "opentelekomcloud_compute_instance_v2" "this" {
     uuid           = var.network_subnet_id
     name           = var.network_subnet_id == null && var.network_port_id == null ? var.network_name : null
     port_id        = var.network_subnet_id == null && var.network_name == null ? var.network_port_id : null
-    fixed_ip_v4    = var.create_public_ip ? opentelekomcloud_vpc_eip_v1.otc-af-base-compute-public_ip[0].publicip.0.ip_address : var.network_fixed_ip_v4
+    fixed_ip_v4    = var.create_public_ip ? opentelekomcloud_vpc_eip_v1.otc_af_base_compute_public_ip[0].publicip.0.ip_address : var.network_fixed_ip_v4
     fixed_ip_v6    = var.create_public_ip ? null : var.network_fixed_ip_v6
     access_network = var.network_access_network
   }
