@@ -71,10 +71,10 @@ locals {
   availability_zone = var.availability_zone == "" ? "${local.region}-01" : var.availability_zone
 }
 
+
 ##################################################################################
 ## Virtual Machine
 ##################################################################################
-
 
 resource "opentelekomcloud_compute_instance_v2" "this" {
   # Determines whether the resource should be created or not.
@@ -132,8 +132,8 @@ resource "opentelekomcloud_compute_instance_v2" "this" {
     uuid           = var.network_subnet_id
     name           = var.network_subnet_id == null && var.network_port_id == null ? var.network_name : null
     port_id        = var.network_subnet_id == null && var.network_name == null ? var.network_port_id : null
-    fixed_ip_v4    = var.network_fixed_ip_v4
-    fixed_ip_v6    = var.network_fixed_ip_v6
+    fixed_ip_v4    = var.create_public_ip ? opentelekomcloud_vpc_eip_v1.otc-af-base-compute-public_ip[0].publicip.0.ip_address : var.network_fixed_ip_v4
+    fixed_ip_v6    = var.create_public_ip ? null : var.network_fixed_ip_v6
     access_network = var.network_access_network
   }
 
@@ -154,39 +154,19 @@ resource "opentelekomcloud_compute_instance_v2" "this" {
     }
   }
 
-  # System disk definition
+  # Define a block device as system disk  that will be attached to the server instance being created
   block_device {
+    # Determine the image id based on the input value of "var.image_id" or by using the image id from the data source 
+    # "data.opentelekomcloud_images_image_v2" if "var.image_id" is not specified
     uuid                  = var.image_id == "" ? data.opentelekomcloud_images_image_v2.image.id : var.image_id
     source_type           = "image"
     volume_size           = var.system_disk_size
+    # Set the boot index to 0 to ensure that the instance boots from this block device
     boot_index            = 0
     destination_type      = "volume"
+    # Set the "delete_on_termination" flag to true to ensure that the block device is deleted when the instance is terminated
     delete_on_termination = true
     volume_type           = var.system_disk_type
   }
 
-
-}
-
-
-resource "opentelekomcloud_vpc_eip_v1" "public_ip" {
-  count = var.create_public_ip ? 1 : 0
-  publicip {
-    type = "5_bgp"
-  }
-  bandwidth {
-    name        = "bandwidth"
-    size        = var.eip_bandwidth
-    share_type  = "PER"
-    charge_mode = "traffic"
-  }
-
-  tags = var.tags
-}
-
-
-resource "opentelekomcloud_networking_floatingip_associate_v2" "floatingip_associate" {
-  count       = var.create_public_ip ? 1 : 0
-  floating_ip = opentelekomcloud_vpc_eip_v1.public_ip[0].publicip.0.ip_address
-  port_id     = opentelekomcloud_compute_instance_v2.node.network.0.port
 }

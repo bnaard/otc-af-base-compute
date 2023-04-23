@@ -90,14 +90,14 @@ variable "network_port_id" {
 variable "network_fixed_ip_v4" {
   type        = string
   default     = null
-  description = "Specifies a fixed IPv4 address to be used on this network. Optional.\ndefault: \"\""
+  description = "Specifies a fixed IPv4 address to be used on this network. Optional. If create_public_ip == true, the settings for network_fixed_ip_v4 and network_fixed_ip_v6 will be ignored.\ndefault: \"\""
 }
 
 # Defines a fixed IPv6 address to use on this network.
 variable "network_fixed_ip_v6" {
   type        = string
   default     = null
-  description = "Specifies a fixed IPv6 address to be used on this network. Optional.\ndefault: \"\""
+  description = "Specifies a fixed IPv6 address to be used on this network. Optional.If create_public_ip == true, the settings for network_fixed_ip_v4 and network_fixed_ip_v6 will be ignored.\ndefault: \"\""
 }
 
 # Specifies if the network should be used for provisioning access.
@@ -114,6 +114,34 @@ variable "network_additional_interfaces" {
 }
 
 
+variable "create_public_ip" {
+  type        = bool
+  default     = false
+  description = "If true, creates a public IP, attaches it to the first network of the virtual machine and provides the IPv4 address as output. If create_public_ip == true, the settings for network_fixed_ip_v4 and network_fixed_ip_v6 will be ignored.\nDefault: false."
+}
+
+variable "public_ip_bandwidth" {
+  description     = "Bandwidth of public IP access to the virtual machine in MBit.\nMust be between 1 and 300.\ndefault: 5"
+  type            = number
+  default         = 5
+  validation {
+    condition     = var.public_ip_bandwidth >= 1 && var.public_ip_bandwidth <= 300
+    error_message = "Allowed values for public_ip_bandwidth >= 1 and <= 300."
+  }
+}
+
+variable "public_ip_bandwidth_share_type" {
+  description     = "Specifies whether the bandwidth is shared or dedicated.\nMust be one of \"WHOLE\" (Shared bandwidth) or \"PER\" (Dedicated bandwidth)\nDefault: \"PER\""
+  type            = string
+  default         = "PER"
+  validation {
+    condition     = contains(["WHOLE", "PER"], var.public_ip_share_type)
+    error_message = "Allowed values for public_ip_bandwidth_share_type are \"WHOLE\" or \"PER\"."
+  }
+}
+
+
+
 ##################################################################################
 ## Attached block storage devices
 ##################################################################################
@@ -125,14 +153,13 @@ variable "system_disk_size" {
 }
 
 variable "system_disk_type" {
-  description = "Virtual machine system disk storage type. Must be one of \"SATA\", \"SAS\", or \"SSD\".\nDefault: \"SATA\""
-  default     = "SATA"
+  description     = "Virtual machine system disk storage type. Must be one of \"SATA\", \"SAS\", or \"SSD\".\nDefault: \"SATA\""
+  default         = "SATA"
   validation {
     condition     = contains(["SATA", "SAS", "SSD"], var.system_disk_type)
     error_message = "Allowed values for system_disk_type are \"SATA\", \"SAS\", or \"SSD\"."
   }
 }
-
 
 
 ##################################################################################
