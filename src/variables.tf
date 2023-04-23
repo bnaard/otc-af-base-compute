@@ -135,7 +135,7 @@ variable "public_ip_bandwidth_share_type" {
   type            = string
   default         = "PER"
   validation {
-    condition     = contains(["WHOLE", "PER"], var.public_ip_share_type)
+    condition     = contains(["WHOLE", "PER"], var.public_ip_bandwidth_share_type)
     error_message = "Allowed values for public_ip_bandwidth_share_type are \"WHOLE\" or \"PER\"."
   }
 }

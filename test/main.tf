@@ -13,25 +13,56 @@ provider "opentelekomcloud" {
   auth_url    = "https://iam.eu-de.otc.t-systems.com/v3"
 }
 
-module "otc_af_base_compute_test_01_basic_creation" {
-    count                     = 1
-    source                    = "github.com/bnaard/otc-af-base-compute" # ref=
+resource "opentelekomcloud_vpc_v1" "test_vpc" {
+  name = "otc_af_base_compute_test_vpc"
+  cidr = "192.168.0.0/16"
+  tags = { deployment = "otc_af_base_compute_test", environment = "test", function = "vpc" }
+}
 
-    name                      = "bastion"  
-    tags                      = merge( var.tags, { function = "bastion"} )
-    subnet_id                 = opentelekomcloud_vpc_subnet_v1.dmz_subnet.id
-    # fixed_ip_v4               = var.bastion_fixed_ip_v4
-    allow_tcp_forwarding      = true
-    create_public_ip          = true
-    eip_bandwidth             = 5
-    system_disk_size          = 7
-    system_disk_type          = "SATA"
-    availability_zone         = var.bastion_availability_zone
-    flavor_name               = var.bastion_flavor_name
-    image_name                = var.bastion_image_name
-    ssh_port                  = var.bastion_ssh_port
-    trusted_ssh_origins       = var.bastion_trusted_ssh_origins
-    cloud_init_config         = join("\n", [for filepath in local.cloud_init_files : file(filepath)])
-    emergency_user            = var.emergency_user
-    emergency_user_spec       = var.emergency_user_spec
+resource "opentelekomcloud_vpc_subnet_v1" "test_subnet" {
+  name       = "otc_af_base_compute_test_subnet"
+  vpc_id     = opentelekomcloud_vpc_v1.test_vpc.id
+  cidr       = "192.168.1.0/24"
+  gateway_ip = cidrhost("192.168.1.0/24", 1) #  "192.168.1.1"
+  tags       = { deployment = "otc_af_base_compute_test", environment = "test", function = "subnet" }
+}
+
+
+
+
+
+module "otc_af_base_compute_test_01_basic_creation" {
+  count                               = 1
+  source                              = "github.com/bnaard/otc-af-base-compute/src" # ref=v0.0.1
+  name                                = "otc_af_base_compute_test_01_basic_creation"
+  tags                                = { deployment = "otc_af_base_compute_test", environment = "test_01_basic_creation", function = "compute" }
+  subnet_id                           = opentelekomcloud_vpc_subnet_v1.test_subnet.id
+  create_public_ip                    = true
+  availability_zone                   = "eu-de-01"
+  flavor_name                         = "s3.medium.1"
+  image_name                          = "Standard_Ubuntu_22.04_latest"
+  emergency_user                      = true
+  emergency_user_spec_public_key_file = var.emergency_user_spec_public_key_file
+}
+
+resource "opentelekomcloud_networking_secgroup_rule_v2" "otc_af_base_compute_test_01_basic_creation_ssh_ingress_allow_rule" {
+  for_each          = toset(["0.0.0.0/0"])
+
+  description       = "SSH allowed origins from Internet"
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = 22
+  port_range_max    = 22
+  remote_ip_prefix  = length(split("/", each.value)) == 2 ? each.value : "${each.value}/32"
+  security_group_id = otc_af_base_compute_test_01_basic_creation.security_groups[0].id
+}
+
+
+resource "opentelekomcloud_networking_secgroup_rule_v2" "otc_af_base_compute_test_01_basic_creation_ssh_egress_allow_rule" {
+  description       = "Allow all outgoing communication from the node ${var.name} to internet."
+  direction         = "egress"
+  ethertype         = "IPv4"
+  remote_ip_prefix  = "0.0.0.0/0"
+  security_group_id = otc_af_base_compute_test_01_basic_creation.security_groups[0].id
 }

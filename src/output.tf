@@ -52,8 +52,8 @@ output "networks" {
 ## Security
 ##################################################################################
 
-output "security_group_names" {
-  description = "The list of names of the security group assigned to the virtual machine."
+output "security_groups" {
+  description = "The list of security group assigned to the virtual machine."
   # value       = try(opentelekomcloud_networking_secgroup_v2.otc_af_base_compute_securitygroup.name, "")
   value         = try(opentelekomcloud_compute_instance_v2.otc_af_base_compute.security_groups, "")
 }
