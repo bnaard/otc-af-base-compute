@@ -33,20 +33,21 @@ resource "opentelekomcloud_vpc_subnet_v1" "test_subnet" {
 
 module "otc_af_base_compute_test_01_basic_creation" {
   count                               = 1
-  source                              = "github.com/bnaard/otc-af-base-compute/src" # ref=v0.0.1
+  #  source                              = "github.com/bnaard/otc-af-base-compute/src" # ref=v0.0.1
+  source                              = "../src" # ref=v0.0.1
   name                                = "otc_af_base_compute_test_01_basic_creation"
   tags                                = { deployment = "otc_af_base_compute_test", environment = "test_01_basic_creation", function = "compute" }
-  subnet_id                           = opentelekomcloud_vpc_subnet_v1.test_subnet.id
+  network_subnet_id                   = opentelekomcloud_vpc_subnet_v1.test_subnet.id
   create_public_ip                    = true
   availability_zone                   = "eu-de-01"
-  flavor_name                         = "s3.medium.1"
+  flavor_name                         = "s3.medium.2"
   image_name                          = "Standard_Ubuntu_22.04_latest"
   emergency_user                      = true
   emergency_user_spec_public_key_file = var.emergency_user_spec_public_key_file
 }
 
 resource "opentelekomcloud_networking_secgroup_rule_v2" "otc_af_base_compute_test_01_basic_creation_ssh_ingress_allow_rule" {
-  for_each          = toset(["0.0.0.0/0"])
+  for_each = toset(["0.0.0.0/0"])
 
   description       = "SSH allowed origins from Internet"
   direction         = "ingress"
@@ -55,14 +56,14 @@ resource "opentelekomcloud_networking_secgroup_rule_v2" "otc_af_base_compute_tes
   port_range_min    = 22
   port_range_max    = 22
   remote_ip_prefix  = length(split("/", each.value)) == 2 ? each.value : "${each.value}/32"
-  security_group_id = otc_af_base_compute_test_01_basic_creation.security_groups[0].id
+  security_group_id = module.otc_af_base_compute_test_01_basic_creation[0].security_group.id
 }
 
 
 resource "opentelekomcloud_networking_secgroup_rule_v2" "otc_af_base_compute_test_01_basic_creation_ssh_egress_allow_rule" {
-  description       = "Allow all outgoing communication from the node ${var.name} to internet."
+  description       = "Allow all outgoing communication from the node to internet."
   direction         = "egress"
   ethertype         = "IPv4"
   remote_ip_prefix  = "0.0.0.0/0"
-  security_group_id = otc_af_base_compute_test_01_basic_creation.security_groups[0].id
+  security_group_id = module.otc_af_base_compute_test_01_basic_creation[0].security_group.id
 }

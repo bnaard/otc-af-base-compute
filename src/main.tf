@@ -131,8 +131,8 @@ resource "opentelekomcloud_compute_instance_v2" "otc_af_base_compute" {
   network {
     uuid           = var.network_subnet_id
     name           = var.network_subnet_id == null && var.network_port_id == null ? var.network_name : null
-    port_id        = var.network_subnet_id == null && var.network_name == null ? var.network_port_id : null
-    fixed_ip_v4    = var.create_public_ip ? opentelekomcloud_vpc_eip_v1.otc_af_base_compute_public_ip[0].publicip.0.ip_address : var.network_fixed_ip_v4
+    port           = var.network_subnet_id == null && var.network_name == null ? var.network_port_id : null
+    fixed_ip_v4    = var.create_public_ip ? null : var.network_fixed_ip_v4
     fixed_ip_v6    = var.create_public_ip ? null : var.network_fixed_ip_v6
     access_network = var.network_access_network
   }
@@ -142,12 +142,12 @@ resource "opentelekomcloud_compute_instance_v2" "otc_af_base_compute" {
   # The block iterates over the map of additional network interfaces provided in
   # the variable var.network_additional_interfaces, and creates a content block
   # for each interface with attributes corresponding to the keys of each map item.
-  dynamic "network_additional_interfaces" {
+  dynamic "network" {
     for_each = var.network_additional_interfaces
     content {
       uuid           = lookup(each.value, "network_subnet_id", null)
       name           = lookup(each.value, "network_subnet_id", null) == null && lookup(each.value, "network_port_id", null) == null ? lookup(each.value, "network_name", null) : null
-      port_id        = lookup(each.value, "network_subnet_id", null) == null && lookup(each.value, "network_name", null) == null ? lookup(each.value, "network_port_id", null) : null
+      port           = lookup(each.value, "network_subnet_id", null) == null && lookup(each.value, "network_name", null) == null ? lookup(each.value, "network_port_id", null) : null
       fixed_ip_v4    = lookup(each.value, "network_fixed_ip_v4", null)
       fixed_ip_v6    = lookup(each.value, "network_fixed_ip_v6", null)
       access_network = lookup(each.value, "network_access_network", null)
@@ -157,27 +157,32 @@ resource "opentelekomcloud_compute_instance_v2" "otc_af_base_compute" {
   # Define a block device as system disk  that will be attached to the server instance being created
 
   # Case 1: system disk defined by module user and reference id to existing disk given as argument
-  block_device {
-    count                 = var.system_disk_id ? 1 : 0
-    uuid                  = var.system_disk_id
-    boot_index            = 0
+  dynamic "block_device" {
+    for_each = var.system_disk_id == null || var.system_disk_id == "" ? [] : [1]
+    content {
+      uuid                  = var.system_disk_id
+      source_type           = "image"
+      boot_index            = 0
+    }
   }
 
   # Case 2: No system disk created outside the module, hence system disk details defined 
   # created based on the given disk image id
-  block_device {
-    count                 = var.system_disk_id ? 0 : 1
-    # Determine the image id based on the input value of "var.image_id" or by using the image id from the data source 
-    # "data.opentelekomcloud_images_image_v2" if "var.image_id" is not specified
-    uuid                  = var.image_id == "" ? data.opentelekomcloud_images_image_v2.image.id : var.image_id
-    source_type           = "image"
-    volume_size           = var.system_disk_size
-    # Set the boot index to 0 to ensure that the instance boots from this block device
-    boot_index            = 0
-    destination_type      = "volume"
-    # Set the "delete_on_termination" flag to true to ensure that the block device is deleted when the instance is terminated
-    delete_on_termination = true
-    volume_type           = var.system_disk_type
+  dynamic "block_device" {
+    for_each = var.system_disk_id == null  || var.system_disk_id == "" ? [1] : []
+    content {
+      # Determine the image id based on the input value of "var.image_id" or by using the image id from the data source 
+      # "data.opentelekomcloud_images_image_v2" if "var.image_id" is not specified
+      uuid                  = var.image_id == "" ? data.opentelekomcloud_images_image_v2.otc_af_base_compute_image.id : var.image_id
+      source_type           = "image"
+      volume_size           = var.system_disk_size
+      # Set the boot index to 0 to ensure that the instance boots from this block device
+      boot_index            = 0
+      destination_type      = "volume"
+      # Set the "delete_on_termination" flag to true to ensure that the block device is deleted when the instance is terminated
+      delete_on_termination = true
+      volume_type           = var.system_disk_type
+    }
   }
 
 
@@ -186,7 +191,7 @@ resource "opentelekomcloud_compute_instance_v2" "otc_af_base_compute" {
   # variable and creates a block with the specified properties for each value. The lookup function 
   # is used to retrieve the values of each property from the variable. If the property does not exist,
   # the respective variable will not be set
-  dynamic "disk_additional_devices" {
+  dynamic "block_device" {
     for_each = var.disk_additional_devices
     content {
       uuid                  = lookup(each.value, "disk_id", null)
@@ -203,7 +208,7 @@ resource "opentelekomcloud_compute_instance_v2" "otc_af_base_compute" {
   # on values in the `var.disk_additional_ephemeral_devices` variable. The `volume_size` and 
   # `volume_type` properties are retrieved from the variable using the `lookup` function, 
   # with default values assigned if the property is not present. 
-  dynamic "disk_additional_ephemeral_devices" {
+  dynamic "block_device" {
     for_each = var.disk_additional_ephemeral_devices
     content {
       source_type           = "blank" 

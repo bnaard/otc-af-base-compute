@@ -4,22 +4,22 @@
 
 output "id" {
   description = "The ID of the virtual machine."
-  value       = try(opentelekomcloud_compute_instance_v2.otc_af_base_compute.id, "")
+  value       = try(opentelekomcloud_compute_instance_v2.otc_af_base_compute[0].id, "")
 }
 
 output "image_name" {
   description = "The image name used for the system disk."
-  value       = try(opentelekomcloud_compute_instance_v2.otc_af_base_compute.image_name, "")
+  value       = try(opentelekomcloud_compute_instance_v2.otc_af_base_compute[0].image_name, "")
 }
 
 output "flavor_name" {
   description = "The flavor name used for the virtual machine."
-  value       = try(opentelekomcloud_compute_instance_v2.otc_af_base_compute.flavor_name, "")
+  value       = try(opentelekomcloud_compute_instance_v2.otc_af_base_compute[0].flavor_name, "")
 }
 
 output "availability_zone" {
   description = "The availability zone the virtual machine is deployed in."
-  value       = try(opentelekomcloud_compute_instance_v2.otc_af_base_compute.availability_zone, "")
+  value       = try(opentelekomcloud_compute_instance_v2.otc_af_base_compute[0].availability_zone, "")
 }
 
 
@@ -34,17 +34,17 @@ output "public_ip" {
 
 output "access_ip_v4" {
   description = "The first detected Fixed IPv4 address or the Floating IP."
-  value       = try( opentelekomcloud_compute_instance_v2.otc_af_base_compute.access_ip_v4, "")
+  value       = try( opentelekomcloud_compute_instance_v2.otc_af_base_compute[0].access_ip_v4, "")
 }
 
 output "access_ip_v6" {
   description = "The first detected Fixed IPv6 address."
-  value       = try( opentelekomcloud_compute_instance_v2.otc_af_base_compute.access_ip_v6, "")
+  value       = try( opentelekomcloud_compute_instance_v2.otc_af_base_compute[0].access_ip_v6, "")
 }
 
 output "networks" {
   description = "List of all networks attached to this virtual machine."
-  value       = try(opentelekomcloud_compute_instance_v2.otc_af_base_compute.network, "" )
+  value       = try(opentelekomcloud_compute_instance_v2.otc_af_base_compute[0].network, "" )
 }
 
 
@@ -52,8 +52,8 @@ output "networks" {
 ## Security
 ##################################################################################
 
-output "security_groups" {
-  description = "The list of security group assigned to the virtual machine."
-  # value       = try(opentelekomcloud_networking_secgroup_v2.otc_af_base_compute_securitygroup.name, "")
-  value         = try(opentelekomcloud_compute_instance_v2.otc_af_base_compute.security_groups, "")
+output "security_group" {
+  description = "The security group assigned to the virtual machine."
+  value       = try(opentelekomcloud_networking_secgroup_v2.otc_af_base_compute_securitygroup, "")
+  # value         = try(opentelekomcloud_compute_instance_v2.otc_af_base_compute[0].security_groups, "")
 }
