@@ -17,6 +17,7 @@ variable "name" {
 variable "tags" {
   type        = map(string)
   description = "Tags applied to the virtual machine.\nFormat:\n  {\n    key1 = \"value1\",\n    key2 = \"value2\"\n    ...\n  }\nDefault: {}."
+  default     = {}
 }
 
 variable "cloud_init_config" {

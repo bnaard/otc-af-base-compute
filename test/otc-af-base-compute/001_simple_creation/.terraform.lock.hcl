@@ -4,7 +4,7 @@
 provider "registry.terraform.io/hashicorp/template" {
   version = "2.2.0"
   hashes = [
-    "h1:0wlehNaxBX7GJQnPfQwTNvvAf38Jm0Nv7ssKGMaG6Og=",
+    "h1:94qn780bi1qjrbC3uQtjJh3Wkfwd5+tTtJHOb7KTg9w=",
     "zh:01702196f0a0492ec07917db7aaa595843d8f171dc195f4c988d2ffca2a06386",
     "zh:09aae3da826ba3d7df69efeb25d146a1de0d03e951d35019a0f80e4f58c89b53",
     "zh:09ba83c0625b6fe0a954da6fbd0c355ac0b7f07f86c91a2a97849140fea49603",
@@ -22,7 +22,7 @@ provider "registry.terraform.io/opentelekomcloud/opentelekomcloud" {
   version     = "1.34.2"
   constraints = ">= 1.32.3"
   hashes = [
-    "h1:0rYYMACRHmteyfQHzaf279O3q3k3UuKKh3Ye8/NZoP4=",
+    "h1:6km38tA93WieLg8keDwXzXt5WvseWQkaJxju7VB4b5Y=",
     "zh:03e18f8c04f0b142c70d938b0091d5f05eb698611700027175ed71b60fb7e4d6",
     "zh:0b0ee70c02d4b82f7992f001e570894a1edb271967f170f28f6831f9e9908134",
     "zh:2d35857b24916360ad8a2eb5043faa5204faa38a5c159814ffa6aa9b137d37ca",

@@ -1,3 +1,7 @@
+############################
+# Terraform
+############################
+
 # Local .terraform directories
 **/.terraform/*
 
@@ -32,3 +36,59 @@ override.tf.json
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
+
+
+
+############################
+# Go
+############################
+
+
+# Compiled Object files, Static and Dynamic libs (Shared Objects)
+*.o
+*.a
+*.so
+
+# Folders
+_obj
+_test
+
+# Architecture specific extensions/prefixes
+*.[568vq]
+[568vq].out
+
+# Runtime, Temporary and Backup files
+*.~*
+*.log
+*.swp
+*.tmp
+*.bak
+*.orig
+*.cache
+*.pid
+*.env
+*.lock
+*.test
+
+# Dependency directories (remove the ones that you are not using)
+/bin
+/vendor
+/Godeps
+/go/pkg
+
+# Compiled Go binary files
+*.exe
+
+# IDE files
+.idea
+*.iml
+*.ipr
+*.iws
+
+# macOS files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Vim files
+*.swp
