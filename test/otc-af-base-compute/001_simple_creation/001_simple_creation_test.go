@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"os"
+	"log"
 
 	"github.com/gruntwork-io/terratest/modules/retry"
 	"github.com/gruntwork-io/terratest/modules/ssh"
@@ -35,9 +37,18 @@ func TestTerraformHelloWorldExample(t *testing.T) {
 	publicInstanceIP := terraform.Output(t, terraformOptions, "public_ip")
 
 	// Create an SSH key pair struct with the private key location
+	priv, err := os.ReadFile("/workdir/emergency-user-key")
+    if err != nil {
+        log.Fatal(err)
+    }
+	pub, err := os.ReadFile("/workdir/emergency-user-key.pub")
+    if err != nil {
+        log.Fatal(err)
+    }
+
 	keyPair := ssh.KeyPair{
-		PrivateKey: "/workdir/emergency-user-key",
-		PublicKey: "/workdir/emergency-user-key.pub",
+		PrivateKey: string(priv),
+		PublicKey: string(pub),
 	}
 
 	publicHost := ssh.Host{
@@ -46,7 +57,7 @@ func TestTerraformHelloWorldExample(t *testing.T) {
 		SshUserName: "emergency",
 	}
 
-	maxRetries := 5
+	maxRetries := 6
 	timeBetweenRetries := 5 * time.Second
 	description := fmt.Sprintf("SSH to public host %s", publicInstanceIP)
 
